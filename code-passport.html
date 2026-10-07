@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Learning Passport</title>
+<!-- Chart.js: thư viện vẽ biểu đồ (cần mạng) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root { --accent:#0e7c86; --accent-dark:#0a5c64; --accent-soft:#e6f4f5; --line:#bfdde0; --ink:#1f2933; --muted:#6b7785; --good:#2f9e6b; }
+  * { box-sizing: border-box; }
+  body { margin:0; height:100vh; height:100dvh; display:flex; justify-content:center; align-items:center; background:#f3f7f8; color:var(--ink); font-family:'Segoe UI',Tahoma,Verdana,sans-serif; }
+  .book { width:100%; max-width:480px; height:95%; max-height:700px; background:#fff; border-radius:14px; border-left:12px solid var(--accent); box-shadow:0 10px 30px rgba(0,0,0,.12); overflow:hidden; }
+  .page { display:none; flex-direction:column; height:100%; padding:24px; }
+  .page.active { display:flex; animation:slideIn .3s ease-out; }
+  @keyframes slideIn { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:none} }
+  h2 { margin:0 0 14px; text-align:center; color:var(--accent-dark); font-size:20px; }
+  .content { flex:1; min-height:0; overflow-y:auto; font-size:14px; line-height:1.6; padding-right:4px; }
+  .footer { display:flex; justify-content:space-between; gap:8px; margin-top:12px; }
+  .center { text-align:center; margin-top:20px; }
+  .quote { text-align:center; font-style:italic; color:var(--muted); }
+  .note { font-size:13px; color:var(--muted); margin-top:0; }
+  .row { display:flex; gap:8px; margin:10px 0; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:20px; padding:10px 18px; font-size:13px; font-weight:600; cursor:pointer; transition:background .2s; }
+  button:hover { background:var(--accent-dark); }
+  button:disabled { background:#c5ced3; cursor:not-allowed; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline:3px solid #f59e0b; outline-offset:2px; }
+  .green { background:var(--good); } .green:hover { background:#247a52; }
+  .big { padding:12px 32px; font-size:16px; margin-top:18px; }
+  .full { width:100%; margin-top:10px; }
+  input[type=text] { width:100%; margin-top:8px; padding:12px; border:2px dashed var(--accent); border-radius:8px; font-size:15px; font-weight:600; text-align:center; color:var(--accent-dark); }
+  textarea { width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; background:#f8fbfb; font:13px Consolas,'Courier New',monospace; resize:vertical; }
+  .cover { justify-content:center; align-items:center; text-align:center; background:linear-gradient(135deg,var(--accent-soft),#fff); }
+  .cover h1 { margin:10px 0; color:var(--accent-dark); font-size:26px; letter-spacing:1px; }
+  .cover .logo { font-size:58px; margin-top:50px; }
+  .cover .sub { margin:0; color:var(--muted); font-weight:600; }
+  .cover .tag { margin-top:auto; font-style:italic; color:var(--accent); font-size:13px; }
+  .prompt { position:relative; margin-bottom:12px; padding:12px 70px 12px 12px; background:var(--accent-soft); border:1px solid var(--line); border-radius:8px; }
+  .prompt span { display:block; margin-top:4px; font-size:13px; }
+  .copy-btn { position:absolute; top:10px; right:10px; padding:6px 10px; font-size:11px; background:var(--good); }
+  .rule { padding:16px; margin:12px 0; border-radius:12px; font-size:16px; font-weight:700; text-align:center; }
+  .rule small { display:block; margin-top:4px; font-size:12px; font-weight:400; }
+  .self { background:#e2f3ea; border:2px solid #5bb98b; color:#1d5c3f; }
+  .ai { background:#fff3d6; border:2px solid #f0b429; color:#7a5a00; }
+  .hint-box { margin-top:6px; padding:12px; background:#fff8e6; border-left:4px solid #f59e0b; border-radius:6px; }
+  .hint-box span { margin-left:8px; font-size:12px; color:var(--muted); }
+  .hint-box p { margin:8px 0 0; }
+  .check { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; padding:10px; border:1px solid #dde6ea; border-radius:8px; cursor:pointer; }
+  .check:hover { background:var(--accent-soft); }
+  .check input { width:20px; height:20px; flex-shrink:0; margin-top:2px; accent-color:var(--accent); }
+  .ok { text-align:center; color:var(--good); font-weight:600; font-size:13px; }
+  .stats { display:flex; justify-content:space-between; margin-bottom:14px; }
+  .stat { width:48%; padding:10px; text-align:center; border:1px solid var(--line); border-radius:8px; }
+  .stat span { display:block; font-size:12px; color:var(--muted); }
+  .stat strong { display:block; margin-top:4px; font-size:22px; color:var(--accent-dark); }
+  .chart-box { padding:10px; border:1px solid var(--line); border-radius:8px; }
+  #chartError { margin:0; text-align:center; font-size:12px; color:#c0392b; }
+  [hidden] { display:none !important; }
+  @media (max-width:480px) { .book { height:100%; max-height:none; border-radius:0; } .page { padding:18px; } }
+</style>
+</head>
+<body>
+
+<main class="book">
+
+  <!-- TRANG 1: BÌA -->
+  <section class="page cover active" id="page1">
+    <div class="logo">💻</div>
+    <h1>CODE LEARNING<br>PASSPORT</h1>
+    <p class="sub">Hộ chiếu tự học lập trình</p>
+    <button class="big" data-go="2">Mở sổ tay ▶</button>
+    <p class="tag">Học code chủ động, dùng AI như người hướng dẫn</p>
+  </section>
+
+  <!-- TRANG 2: CAM KẾT -->
+  <section class="page" id="page2">
+    <h2>🛂 Lời cam kết</h2>
+    <div class="content">
+      <p class="quote">"Tôi gõ code của mình, AI chỉ chỉ đường."</p>
+      <p>Khi ghi tên vào sổ này, mình cam kết:</p>
+      <ul>
+        <li>Tự đọc thông báo lỗi trước khi hỏi AI.</li>
+        <li><b>Không</b> copy-paste nguyên đoạn code mà mình chưa hiểu.</li>
+        <li>Giải thích được từng dòng code bằng lời của mình.</li>
+      </ul>
+      <div class="center">
+        <label for="studentName"><b>Tên của chủ nhân sổ tay:</b></label>
+        <input type="text" id="studentName" placeholder="Gõ tên bạn vào đây..." maxlength="40">
+      </div>
+    </div>
+    <div class="footer"><button data-go="1">◀ Bìa</button><button data-go="3">Tiếp ▶</button></div>
+  </section>
+
+  <!-- TRANG 3: MẪU LỆNH HỎI AI -->
+  <section class="page" id="page3">
+    <h2>💡 Mẫu lệnh hỏi AI</h2>
+    <div class="content">
+      <p class="note">Copy các mẫu này rồi dán vào khung chat AI:</p>
+      <div class="prompt"><b>🐞 Tìm lỗi</b><span>Code mình báo lỗi [dán lỗi]. Đừng sửa giúp, hãy hỏi mình 3 câu gợi mở để mình tự tìm ra nguyên nhân.</span><button class="copy-btn">Copy</button></div>
+      <div class="prompt"><b>📚 Hiểu khái niệm</b><span>Giải thích [vòng lặp for / hàm / mảng...] bằng 1 ví dụ đời thường, rồi cho mình 1 bài tập nhỏ để tự thử. Đừng đưa lời giải.</span><button class="copy-btn">Copy</button></div>
+      <div class="prompt"><b>🔍 Nhận xét code</b><span>Đây là code mình tự viết: [dán code]. Chỉ ra 2 điểm có thể cải thiện về cách đặt tên hoặc cấu trúc, đừng viết lại cả code.</span><button class="copy-btn">Copy</button></div>
+      <div class="prompt"><b>🧩 Chia nhỏ dự án</b><span>Mình muốn làm [ý tưởng]. Hãy chia thành 5 bước nhỏ, mỗi bước một câu, không viết code.</span><button class="copy-btn">Copy</button></div>
+      <div class="prompt"><b>🎨 HTML / CSS</b><span>Mình muốn tạo hiệu ứng [mô tả]. Gợi ý các thuộc tính CSS nên tìm hiểu, đừng đưa code hoàn chỉnh.</span><button class="copy-btn">Copy</button></div>
+    </div>
+    <div class="footer"><button data-go="2">◀ Trước</button><button data-go="4">Tiếp ▶</button></div>
+  </section>
+
+  <!-- TRANG 4: QUY TẮC 80/20 -->
+  <section class="page" id="page4">
+    <h2>⚖️ Quy tắc 80/20</h2>
+    <div class="content">
+      <p>Chia sức cho mỗi bài tập code:</p>
+      <div class="rule self">🧠 80% tự làm<small>Đọc đề, nháp ý tưởng, tự gõ code, tự chạy thử, tự debug</small></div>
+      <div class="rule ai">🤖 20% nhờ AI<small>Xin hướng đi, hiểu thông báo lỗi, nhờ nhận xét sau khi đã làm xong</small></div>
+      <p class="note">Gõ lại code bằng tay giúp não nhớ lâu hơn nhiều so với copy-paste.</p>
+    </div>
+    <div class="footer"><button data-go="3">◀ Trước</button><button data-go="5">Tiếp ▶</button></div>
+  </section>
+
+  <!-- TRANG 5: GỢI Ý SỬA LỖI -->
+  <section class="page" id="page5">
+    <h2>🐞 Gợi ý sửa lỗi</h2>
+    <div class="content">
+      <p class="note">Dán thông báo lỗi vào đây. Mình sẽ đặt câu hỏi gợi ý, không sửa hộ.</p>
+      <textarea id="errorInput" rows="5" placeholder="Ví dụ: NameError: name 'total' is not defined"></textarea>
+      <div class="row"><button id="btnHint">Gợi ý</button><button id="btnMore" disabled>Gợi ý thêm</button></div>
+      <div id="hintBox" class="hint-box" hidden>
+        <strong id="hintTitle"></strong><span id="hintLevel"></span>
+        <p id="hintText"></p>
+      </div>
+    </div>
+    <div class="footer"><button data-go="4">◀ Trước</button><button data-go="6">Tiếp ▶</button></div>
+  </section>
+
+  <!-- TRANG 6: TỰ ĐÁNH GIÁ -->
+  <section class="page" id="page6">
+    <h2>✅ Đánh giá ngày <span id="todayLabel"></span></h2>
+    <div class="content">
+      <p>Hôm nay bạn <b id="displayName"></b> đã làm được gì?</p>
+      <label class="check"><input type="checkbox" class="daily-check"> Đọc kỹ thông báo lỗi trước khi hỏi AI.</label>
+      <label class="check"><input type="checkbox" class="daily-check"> Tự đoán nguyên nhân lỗi ít nhất 5 phút.</label>
+      <label class="check"><input type="checkbox" class="daily-check"> Tự gõ lại code, không copy-paste.</label>
+      <label class="check"><input type="checkbox" class="daily-check"> Giải thích được một đoạn code bằng lời của mình.</label>
+      <button id="btnSave" class="green full">💾 Lưu kết quả hôm nay</button>
+      <p id="saveMsg" class="ok" hidden>Đã lưu thành công!</p>
+    </div>
+    <div class="footer"><button data-go="5">◀ Trước</button><button data-go="7">Thống kê ▶</button></div>
+  </section>
+
+  <!-- TRANG 7: THỐNG KÊ -->
+  <section class="page" id="page7">
+    <h2>📊 Thống kê</h2>
+    <div class="content">
+      <div class="stats">
+        <div class="stat"><span>Số ngày học</span><strong id="statDays">0</strong></div>
+        <div class="stat"><span>Điểm trung bình</span><strong id="statAvg">0/4</strong></div>
+      </div>
+      <div class="chart-box">
+        <canvas id="progressChart" height="200"></canvas>
+        <p id="chartError" hidden>Không tải được biểu đồ. Kiểm tra kết nối mạng.</p>
+      </div>
+      <p class="note">Biểu đồ cho thấy mức độ tự học qua 7 ngày gần nhất.</p>
+    </div>
+    <div class="footer"><button data-go="6">◀ Trước</button><button data-go="1">Về bìa</button></div>
+  </section>
+
+</main>
+
+<script>
+/* ====================================================================
+   PHẦN JAVASCRIPT
+   Bản này chạy hoàn toàn trên trình duyệt, không cần Python hay server.
+   Dữ liệu lưu bằng localStorage (nằm trong trình duyệt của bạn).
+   ==================================================================== */
+const $  = (s) => document.querySelector(s);
+const $$ = (s) => document.querySelectorAll(s);
+
+/* ---------- Lưu trữ an toàn (có dự phòng nếu localStorage bị chặn) ---------- */
+const mem = {};
+function load(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; }
+  catch (e) { return mem[key] ?? fallback; }
+}
+function save(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch (e) { mem[key] = value; }
+}
+
+/* ---------- Ngày hôm nay dạng 2026-10-07 (dễ so sánh, dễ sắp xếp) ---------- */
+function todayISO() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function formatDate(iso) { const [y, m, d] = iso.split('-'); return d + '/' + m + '/' + y; }
+
+/* ---------- Chuyển trang: mọi nút có data-go="số trang" ---------- */
+function goTo(n) {
+  $$('.page').forEach((p) => p.classList.remove('active'));
+  $('#page' + n).classList.add('active');
+  if (n === 6) loadToday();
+  if (n === 7) loadStats();
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-go]');
+  if (btn) goTo(Number(btn.dataset.go));
+});
+
+/* ---------- Tên người học ---------- */
+$('#studentName').addEventListener('input', (e) => {
+  const name = e.target.value.trim();
+  save('cp_name', name);
+  $('#displayName').textContent = name;
+});
+
+/* ---------- Copy mẫu lệnh ---------- */
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.copy-btn');
+  if (!btn) return;
+  const text = btn.parentElement.querySelector('span').textContent.trim();
+  const done = () => { const old = btn.textContent; btn.textContent = 'Đã copy ✓'; setTimeout(() => { btn.textContent = old; }, 1500); };
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+});
+function fallbackCopy(text, done) {
+  const box = document.createElement('textarea');
+  box.value = text; box.style.position = 'fixed'; box.style.opacity = '0';
+  document.body.appendChild(box); box.select();
+  try { document.execCommand('copy'); done(); } catch (err) { alert('Không copy tự động được, hãy bôi đen và copy thủ công.'); }
+  document.body.removeChild(box);
+}
+
+/* ====================================================================
+   BỘ GỢI Ý SOCRATIC: nhận diện lỗi, đặt câu hỏi gợi mở (không đưa đáp án)
+   Mỗi lỗi có 3 mức gợi ý. Muốn thêm lỗi mới: thêm một object vào mảng này.
+   ==================================================================== */
+const HINT_RULES = [
+  { name: 'IndentationError (lỗi thụt lề)', pattern: /IndentationError|unexpected indent|expected an indented block/i, hints: [
+    'Python dựa vào thụt lề để biết dòng nào thuộc khối nào. Nhìn dòng báo lỗi và 2 dòng ngay trước nó: chúng có thụt vào bằng nhau không?',
+    "Sau các dòng kết thúc bằng dấu ':' (if, for, while, def...) thì dòng kế tiếp phải thụt vào. Bạn có đang trộn lẫn phím Tab và dấu cách không?",
+    "Chọn một kiểu cho cả file (nên dùng 4 dấu cách). Trong VS Code, bật 'Render Whitespace' để nhìn thấy Tab và dấu cách."] },
+  { name: 'SyntaxError (lỗi cú pháp)', pattern: /SyntaxError/i, hints: [
+    "Lỗi cú pháp nghĩa là chương trình không 'đọc hiểu' được câu lệnh. Lỗi thường nằm ở dòng báo lỗi hoặc dòng ngay phía trên. Bạn thấy gì lạ ở đó?",
+    "Kiểm tra từng cặp: ngoặc ( ) [ ] { }, dấu nháy, và dấu ';' hoặc ':' ở cuối câu lệnh. Cặp nào đang thiếu một nửa?",
+    'Đọc dòng lỗi thật chậm, từng ký tự. Thử xóa dòng đó rồi gõ lại bằng tay xem thông báo lỗi có đổi chỗ không.'] },
+  { name: 'NameError / ReferenceError (tên chưa được định nghĩa)', pattern: /NameError|ReferenceError|is not defined/i, hints: [
+    'Chương trình đang nói nó chưa biết một cái tên. Tên nào được nhắc trong thông báo lỗi?',
+    'Tên đó đã được tạo (gán giá trị, khai báo hàm, import) TRƯỚC dòng bị lỗi chưa? Bạn có gõ sai chữ hoa/thường không?',
+    'So sánh từng ký tự giữa chỗ tạo ra tên và chỗ dùng nó. Kiểm tra luôn xem biến có nằm trong một hàm khác (phạm vi khác) không.'] },
+  { name: 'TypeError (sai kiểu dữ liệu)', pattern: /TypeError/i, hints: [
+    'Một phép toán hoặc hàm đang nhận kiểu dữ liệu không phù hợp. Thông báo lỗi nhắc tới những kiểu nào (int, str, list, NoneType...)?',
+    'In ra kiểu của các biến ở dòng lỗi (Python: print(type(x)), JS: console.log(typeof x)). Kiểu nào khác với dự đoán của bạn?',
+    "Nếu thấy 'NoneType', hãy tìm hàm nào trả về None (thường do quên return). Nếu trộn chuỗi với số, cần đổi kiểu cho khớp."] },
+  { name: 'IndexError (vượt chỉ số danh sách)', pattern: /IndexError|list index out of range/i, hints: [
+    'Bạn đang truy cập một vị trí không tồn tại trong danh sách. Danh sách có bao nhiêu phần tử? Chỉ số bạn dùng là mấy?',
+    'Chỉ số bắt đầu từ 0, nên danh sách 5 phần tử có chỉ số cuối là 4. Bạn có đang đếm từ 1 không?',
+    'In ra độ dài danh sách và chỉ số ngay trước dòng lỗi. Nếu dùng vòng lặp, kiểm tra điều kiện dừng có đi quá giới hạn không.'] },
+  { name: 'KeyError (khóa không có trong dictionary)', pattern: /KeyError/i, hints: [
+    "Bạn đang tìm một 'khóa' không có trong dictionary. Khóa nào được nhắc trong thông báo lỗi?",
+    'In ra các khóa bằng print(tên_dict.keys()). Khóa bạn tìm có trong đó không? Chú ý chữ hoa/thường và khoảng trắng thừa.',
+    "Nếu khóa có thể không tồn tại, hãy tìm hiểu phương thức .get() hoặc kiểm tra 'khóa in tên_dict' trước khi dùng."] },
+  { name: 'ValueError (giá trị không hợp lệ)', pattern: /ValueError/i, hints: [
+    'Giá trị có đúng kiểu nhưng nội dung không hợp lệ. Hàm nào ở dòng lỗi đang nhận giá trị đó?',
+    "In ra giá trị thật sự được truyền vào. Ví dụ int('abc') lỗi vì 'abc' không phải số. Giá trị của bạn có gì lạ (chữ, khoảng trắng, rỗng)?",
+    'Tìm hiểu try/except ValueError để xử lý khi người dùng nhập sai, hoặc kiểm tra giá trị trước khi chuyển đổi.'] },
+  { name: 'ZeroDivisionError (chia cho 0)', pattern: /ZeroDivisionError|division by zero/i, hints: [
+    'Có một phép chia cho 0. Ở dòng lỗi, số nào đang đứng ở vị trí mẫu số?',
+    'Giá trị của mẫu số đến từ đâu? Có trường hợp nó bằng 0 (danh sách rỗng, người dùng nhập 0...) không?',
+    'Thêm một câu lệnh if trước phép chia để xử lý trường hợp mẫu số bằng 0.'] },
+  { name: 'AttributeError (thuộc tính không tồn tại)', pattern: /AttributeError/i, hints: [
+    'Bạn đang gọi một thuộc tính hoặc phương thức mà đối tượng đó không có. Đối tượng nào, và nó thuộc kiểu gì?',
+    'In ra type(đối_tượng) và dir(đối_tượng) để xem nó thực sự có gì. Tên bạn gõ có trong danh sách đó không?',
+    "Nếu thấy 'NoneType', một bước trước đó đã trả về None. Nếu chỉ là gõ sai tên, hãy so lại với tài liệu chính thức."] },
+  { name: 'ModuleNotFoundError (thiếu thư viện)', pattern: /ModuleNotFoundError|ImportError|No module named/i, hints: [
+    'Python không tìm thấy thư viện. Tên thư viện chính xác trong thông báo lỗi là gì? Bạn đã cài nó chưa?',
+    'Phải cài bằng pip trong cùng môi trường mà bạn đang chạy code. Có thể máy bạn có nhiều phiên bản Python không?',
+    "Chạy 'pip list' xem thư viện có xuất hiện không. Lưu ý: tên khi cài (pip install) đôi khi khác tên khi import."] },
+  { name: 'FileNotFoundError (không thấy file)', pattern: /FileNotFoundError|No such file or directory/i, hints: [
+    'Chương trình không thấy file bạn nhờ mở. Đường dẫn đó đang trỏ tới đâu?',
+    'Kiểm tra tên file, đuôi file (.txt, .json) và thư mục mà chương trình đang chạy.',
+    'Dùng đường dẫn đầy đủ hoặc đặt file cùng thư mục với file code. Chú ý dấu \\ và / trên Windows.'] },
+  { name: 'JavaScript: đọc thuộc tính của undefined/null', pattern: /Cannot read propert|is undefined|undefined is not|is null/i, hints: [
+    'Bạn đang đọc thuộc tính của một thứ chưa có giá trị (undefined/null). Thứ nào đứng ngay trước dấu chấm?',
+    'Dùng console.log in nó ra ngay trước dòng lỗi. Có phải bạn tìm phần tử HTML bằng id/class nhưng gõ sai, hoặc script chạy trước khi trang tải xong?',
+    'Kiểm tra id trong HTML và trong document.querySelector có khớp không; đặt thẻ <script> ở cuối <body> hoặc dùng sự kiện DOMContentLoaded.'] },
+];
+
+const DEFAULT_RULE = { name: 'Chưa nhận diện được loại lỗi', hints: [
+  'Đọc dòng cuối cùng của thông báo lỗi trước: nó thường nêu loại lỗi và nguyên nhân. Bạn hiểu nó nói gì bằng lời của mình?',
+  'Tìm số dòng trong thông báo rồi mở đúng dòng đó. Trước khi hỏi AI, hãy tự dự đoán nguyên nhân trong 5 phút.',
+  'Rút code về đoạn nhỏ nhất vẫn gây lỗi, rồi dùng print() hoặc console.log() để xem giá trị từng biến.'] };
+
+let hintLevel = 0;
+
+function showHint(level) {
+  const text = $('#errorInput').value.trim();
+  if (!text) { alert('Hãy dán thông báo lỗi vào ô trước nhé.'); return; }
+
+  level = Math.max(1, Math.min(level, 3));
+  const rule = HINT_RULES.find((r) => r.pattern.test(text)) || DEFAULT_RULE;
+  let hint = rule.hints[level - 1];
+
+  // Nếu trong lỗi có "line 12" thì nhắc luôn số dòng
+  const lines = [...text.matchAll(/line (\d+)/gi)];
+  if (level === 1 && lines.length) hint = 'Lỗi được báo ở dòng ' + lines[lines.length - 1][1] + '. ' + hint;
+
+  hintLevel = level;
+  $('#hintTitle').textContent = rule.name;
+  $('#hintLevel').textContent = 'Gợi ý ' + level + '/3';
+  $('#hintText').textContent = hint;      // textContent an toàn hơn innerHTML
+  $('#hintBox').hidden = false;
+  $('#btnMore').disabled = level >= 3;
+}
+
+$('#btnHint').addEventListener('click', () => showHint(1));
+$('#btnMore').addEventListener('click', () => showHint(hintLevel + 1));
+$('#errorInput').addEventListener('input', () => { hintLevel = 0; $('#btnMore').disabled = true; });
+
+/* ---------- Tự đánh giá hằng ngày ---------- */
+function loadToday() {
+  const today = todayISO();
+  const rec = load('cp_history', []).find((h) => h.date === today);
+  $('#todayLabel').textContent = formatDate(today);
+  $('#displayName').textContent = load('cp_name', '');
+  $$('.daily-check').forEach((box, i) => { box.checked = rec ? !!rec.checks[i] : false; });
+}
+
+$('#btnSave').addEventListener('click', () => {
+  const checks = Array.from($$('.daily-check')).map((b) => b.checked);
+  const record = { date: todayISO(), score: checks.filter(Boolean).length, checks: checks };
+  const history = load('cp_history', []);
+  const i = history.findIndex((h) => h.date === record.date);
+  if (i >= 0) history[i] = record; else history.push(record);
+  save('cp_history', history);
+  $('#saveMsg').hidden = false;
+  setTimeout(() => { $('#saveMsg').hidden = true; }, 2000);
+});
+
+/* ---------- Thống kê + biểu đồ ---------- */
+let chart = null;
+function loadStats() {
+  const history = load('cp_history', []);
+  const days = history.length;
+  const avg = days ? (history.reduce((s, h) => s + h.score, 0) / days).toFixed(1) : '0';
+  $('#statDays').textContent = days;
+  $('#statAvg').textContent = avg + '/4';
+
+  const canvas = $('#progressChart');
+  if (typeof Chart === 'undefined') {            // CDN không tải được -> báo nhẹ nhàng, không crash
+    canvas.style.display = 'none';
+    $('#chartError').hidden = false;
+    return;
+  }
+  canvas.style.display = '';
+  $('#chartError').hidden = true;
+
+  const recent = history.slice(-7);
+  const labels = recent.map((h) => h.date.slice(8, 10) + '/' + h.date.slice(5, 7));
+  const scores = recent.map((h) => h.score);
+
+  if (chart) chart.destroy();
+  chart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: { labels: labels.length ? labels : ['Chưa có dữ liệu'],
+            datasets: [{ label: 'Điểm tự học (tối đa 4)', data: scores.length ? scores : [0], backgroundColor: '#0e7c86', borderRadius: 4 }] },
+    options: { responsive: true, scales: { y: { beginAtZero: true, max: 4, ticks: { stepSize: 1 } } }, plugins: { legend: { display: false } } }
+  });
+}
+
+/* ---------- Khi trang tải xong ---------- */
+$('#studentName').value = load('cp_name', '');
+$('#displayName').textContent = load('cp_name', '');
+$('#todayLabel').textContent = formatDate(todayISO());
+</script>
+</body>
+</html>
